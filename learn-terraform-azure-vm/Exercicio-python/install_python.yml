@@ -1,0 +1,35 @@
+- name: Setup Application with Python3
+  hosts: all
+  become: true
+  become_user: root
+
+  tasks:
+      - name: Add the user "senac"
+        user:
+          name: senac
+          state: present
+          shell: /bin/bash
+
+      - name: Add entry to hosts file
+        lineinfile:
+          path: /etc/hosts
+          line: "10.10.0.1  senacvmapplication"
+
+      - name: Install Python 3
+        apt:
+          name: python3
+          state: present
+          
+      - name: Give access "azureadmin" to "senac" group
+        user:
+          name: azureadmin2
+          groups: senac
+          append: yes
+
+      - name: Create application directory
+        file:
+          path: app/data
+          state: directory
+          owner: senac
+          group: senac
+          mode: 0755

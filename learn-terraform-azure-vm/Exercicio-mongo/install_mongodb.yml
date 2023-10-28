@@ -1,0 +1,94 @@
+- name: Install MongoDB
+  hosts: all
+  become: yes
+  vars:
+    mongodb_database: mydb
+    mongodb_user: root
+    mongodb_password: root
+    mongodb_role: readWrite
+  tasks:
+
+    - name: Ensure MongoDB packages are removed
+      ansible.builtin.package:
+        name:
+          - mongodb-org
+          - mongodb-org-server
+          - mongodb-org-shell
+          - mongodb-org-mongos
+          - mongodb-org-tools
+        state: absent
+        
+    - name: Import the MongoDB public GPG key
+      ansible.builtin.apt_key:
+        url: https://www.mongodb.org/static/pgp/server-4.4.asc
+        state: present
+
+    - name: Create a MongoDB list file
+      ansible.builtin.copy:
+        content: |
+          deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse
+        dest: /etc/apt/sources.list.d/mongodb-org-4.4.list
+
+    - name: Update apt package index
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Baixar libssl1.1
+      shell: wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+      args:
+        chdir: /tmp   # Defina o diretório onde você deseja baixar o pacote
+      become: yes
+
+    - name: Instalar libssl1.1
+      shell: dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+      become: yes
+
+    - name: Install pymongo package
+      apt:
+        name: python3-pymongo
+        state: present
+      become: yes
+
+    - name: Install the MongoDB package
+      ansible.builtin.apt:
+        name: mongodb-org
+        state: present
+
+    - name: Create MongoDB data directory
+      ansible.builtin.file:
+        path: /var/lib/mongodb
+        state: directory
+        owner: mongodb
+        group: mongodb
+        mode: 0755
+
+
+    - name: Start MongoDB service
+      ansible.builtin.service:
+        name: mongod
+        state: started
+        enabled: yes
+
+
+    - name: Open MongoDB port
+      ansible.builtin.ufw:
+        rule: allow
+        port: 27017
+        proto: tcp
+
+
+    - name: Configure MongoDB to start on reboot
+      ansible.builtin.systemd:
+        name: mongod
+        enabled: yes
+        state: started
+
+
+    - name: Create MongoDB user
+      ansible.builtin.mongodb_user:
+        database: "{{ mongodb_database }}"
+        name: "{{ mongodb_user }}"
+        password: "{{ mongodb_password }}"
+        roles:
+          - role: "{{ mongodb_role }}"
+            db: "{{ mongodb_database }}"

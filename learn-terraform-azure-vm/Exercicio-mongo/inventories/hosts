@@ -1,0 +1,7 @@
+[senaclabvms]
+azureadmin@20.127.7.36
+
+[mongodb_servers]
+192.168.1.10
+192.168.1.11
+192.168.1.12
